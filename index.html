@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Перевірка сили паролю</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: auto;
+            background-color: #f8d3e0; /* Темно-рожевий фон */
+            color: #333;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .dark-mode {
+            background-color: #1a1a1a; /* Темний фон */
+            color: #f5f5f5;
+        }
+        .strength {
+            height: 10px;
+            width: 100%;
+            background-color: #e0e0e0;
+            margin: 10px 0;
+        }
+        .strength-level {
+            height: 100%;
+            width: 0;
+            transition: width 0.3s;
+        }
+        .message {
+            margin-top: 10px;
+            font-size: 18px; /* Збільшений шрифт для повідомлень */
+        }
+        .strong {
+            color: green;
+        }
+        .medium {
+            color: orange;
+        }
+        .weak {
+            color: red;
+        }
+        button {
+            background-color: #ff66b2; /* Світло-рожевий */
+            color: white;
+            border: none;
+            padding: 15px 30px; /* Збільшена висота і ширина */
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 16px; /* Збільшений шрифт */
+            margin: 10px 0; /* Відступ між кнопками */
+            display: block; /* Дисплей блоку для центрування */
+            width: 100%; /* Кнопки на всю ширину */
+        }
+        button:hover {
+            background-color: #ff4d94; /* Темніший рожевий при наведенні */
+        }
+        .dark-mode button {
+            background-color: #ff3333; /* Червоний */
+        }
+        .dark-mode button:hover {
+            background-color: #cc0000; /* Темніший червоний при наведенні */
+        }
+        input[type="password"],
+        input[type="number"] {
+            width: 100%; /* Поля на всю ширину */
+            padding: 15px; /* Збільшене поле введення */
+            margin: 10px 0; /* Відступ */
+            font-size: 16px; /* Збільшений шрифт */
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .requirements {
+            margin-top: 15px;
+        }
+        .requirement {
+            display: flex;
+            align-items: center;
+        }
+        .requirement span {
+            margin-left: 10px;
+        }
+        .toggle-password {
+            cursor: pointer;
+            font-size: 24px; /* Збільшений розмір смайлика */
+            margin-top: 10px; /* Відступ над смайлом */
+            display: inline-block; /* Відображення в рядок */
+        }
+    </style>
+</head>
+<body>
+
+<h1>Перевірка сили паролю</h1>
+<p>Перейдіть за посиланням, щоб поділитися: <a href="https://yourapp.com" id="share-link">https://yourapp.com</a></p>
+
+<div>
+    <input type="password" id="password" placeholder="Введіть пароль" />
+    <span class="toggle-password" id="toggle-password">👁️</span>
+</div>
+<button id="check-password">Перевірити пароль</button>
+<div class="strength">
+    <div class="strength-level" id="strength-level"></div>
+</div>
+<div class="message" id="message"></div>
+
+<div class="requirements" id="requirements">
+    <div class="requirement">
+        <input type="checkbox" id="lowercase" disabled>
+        <span>Мінімум одна мала літера</span>
+    </div>
+    <div class="requirement">
+        <input type="checkbox" id="uppercase" disabled>
+        <span>Мінімум одна велика літера</span>
+    </div>
+    <div class="requirement">
+        <input type="checkbox" id="number" disabled>
+        <span>Мінімум одна цифра</span>
+    </div>
+    <div class="requirement">
+        <input type="checkbox" id="special" disabled>
+        <span>Мінімум один спеціальний символ</span>
+    </div>
+    <div class="requirement">
+        <input type="checkbox" id="length" disabled>
+        <span>Мінімум 14 символів</span>
+    </div>
+</div>
+
+<label for="length-input">Довжина паролю:</label>
+<input type="number" id="length-input" value="14" min="8" max="30" />
+<button id="generate-password">Сгенерувати пароль</button>
+<button id="toggle-theme">Темна/Світла тема</button>
+
+<script>
+    const passwordInput = document.getElementById('password');
+    const strengthLevel = document.getElementById('strength-level');
+    const messageDiv = document.getElementById('message');
+    const generateButton = document.getElementById('generate-password');
+    const lengthInput = document.getElementById('length-input');
+    const checkButton = document.getElementById('check-password');
+    const togglePassword = document.getElementById('toggle-password');
+    const toggleThemeButton = document.getElementById('toggle-theme');
+
+    const requirements = {
+        lowercase: document.getElementById('lowercase'),
+        uppercase: document.getElementById('uppercase'),
+        number: document.getElementById('number'),
+        special: document.getElementById('special'),
+        length: document.getElementById('length'),
+    };
+
+    // Функція для перевірки пароля
+    function checkPassword() {
+        const password = passwordInput.value;
+        const strength = checkPasswordStrength(password);
+        updateStrengthDisplay(strength);
+    }
+
+    // Додавання обробника події на кнопку
+    checkButton.addEventListener('click', checkPassword);
+
+    // Додавання обробника події на клавішу Enter
+    passwordInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            checkPassword();
+        }
+    });
+
+    function checkPasswordStrength(password) {
+        let strength = 0;
+        const checks = {
+            lowercase: /[a-z]/,
+            uppercase: /[A-Z]/,
+            number: /[0-9]/,
+            special: /[^A-Za-z0-9]/,
+            length: /.{14,}/,
+        };
+
+        messageDiv.textContent = ""; // Очищення повідомлень
+
+        // Скидання стану вимог
+        for (const key in requirements) {
+            requirements[key].checked = false;
+        }
+
+        // Перевірка вимог
+        for (const key in checks) {
+            if (checks[key].test(password)) {
+                strength++;
+                requirements[key].checked = true; // Встановити галочку
+            } else {
+                requirements[key].checked = false; // Встановити хрестик
+            }
+        }
+
+        return strength;
+    }
+
+    function updateStrengthDisplay(strength) {
+        const strengthPercent = (strength / 5) * 100;
+        strengthLevel.style.width = strengthPercent + '%';
+
+        if (strength === 5) {
+            messageDiv.textContent = "Сильний пароль!";
+            messageDiv.className = "message strong"; // Додати клас для кольору
+            strengthLevel.style.backgroundColor = "green";
+        } else if (strength >= 3) {
+            messageDiv.textContent = "Середній пароль.";
+            messageDiv.className = "message medium"; // Додати клас для кольору
+            strengthLevel.style.backgroundColor = "orange";
+        } else {
+            messageDiv.textContent = "Слабкий пароль.";
+            messageDiv.className = "message weak"; // Додати клас для кольору
+            strengthLevel.style.backgroundColor = "red";
+        }
+    }
+
+    function generatePassword(length = 14) {
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
+        let password = "";
+        for (let i = 0; i < length; i++) {
+            password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return password;
+    }
+
+    generateButton.addEventListener('click', () => {
+        const length = parseInt(lengthInput.value) || 14;
+        const newPassword = generatePassword(length);
+        passwordInput.value = newPassword;
+        const event = new Event('input');
+        passwordInput.dispatchEvent(event);
+    });
+
+    togglePassword.addEventListener('click', () => {
+        const type = passwordInput.type === 'password' ? 'text' : 'password';
+        passwordInput.type = type;
+        togglePassword.textContent = type === 'password' ? '👁️' : '🙈';
+    });
+
+    toggleThemeButton.addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+    });
+</script>
+
+</body>
+</html>
